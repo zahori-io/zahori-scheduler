@@ -34,6 +34,11 @@ public class TaskSchedulerController {
     }
 
     @GetMapping
+    public ResponseEntity<String> get() {
+        return getStatus();
+    }
+
+    // @GetMapping // disabled because not used and for security reasons: to not expose list of UUIDs scheduled
     public ResponseEntity<Object> getTasks() {
         Iterable<UUID> tasks = service.getList();
         return new ResponseEntity<>(tasks, HttpStatus.OK);
