@@ -36,7 +36,7 @@ public class TaskSchedulerService {
 
     // Para poder usar este servicio desde un POJO (Task)
     @PostConstruct
-    private void init() {
+    public void init() {
         instance = this;
     }
 
