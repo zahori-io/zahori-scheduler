@@ -15,15 +15,20 @@ public class ZahoriServerService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZahoriServerService.class);
 
-    public static final String HEALTHCHECK_URL = "/healthcheck";
-    public static final int SECONDS_WAIT_FOR_SERVER = 5;
-    public static final int MAX_RETRIES_WAIT_FOR_SERVER = 10;
-
     @Autowired
     private RestTemplate restTemplate;
 
     @Value("${zahori.server.url:}")
     private String zahoriServerUrl;
+
+    @Value("${zahori.server.healthcheck:}")
+    private String healthcheckUrl;
+
+    @Value("${zahori.server.connection-max-retries:}")
+    private int connectionMaxRetries;
+
+    @Value("${zahori.server.connection-wait-seconds:}")
+    private int connectionWaitSeconds;
 
     public void loadTasks() {
         LOG.info("Start loading tasks from zahori server: {}", zahoriServerUrl);
@@ -40,10 +45,13 @@ public class ZahoriServerService {
     }
 
     public void waitZahoriServerHealthcheck() {
-        for (int i = 1; i <= MAX_RETRIES_WAIT_FOR_SERVER; i++) {
+        LOG.info("Zahori server url: {}", zahoriServerUrl);
+        LOG.info("Zahori server healthcheck: {}{}", zahoriServerUrl, healthcheckUrl);
+        
+        for (int i = 1; i <= connectionMaxRetries; i++) {
 
             try {
-                ResponseEntity<String> response = restTemplate.getForEntity(zahoriServerUrl + HEALTHCHECK_URL, String.class
+                ResponseEntity<String> response = restTemplate.getForEntity(zahoriServerUrl + healthcheckUrl, String.class
                 );
                 LOG.info("Zahori server status: {}", response.getStatusCode());
                 if (response.getStatusCode().is2xxSuccessful()) {
@@ -51,13 +59,13 @@ public class ZahoriServerService {
                 }
             } catch (Exception e) {
                 LOG.warn(
-                        "Zahori server is unreachable: it may be down, still starting or there is no network connectivity");
+                        "Zahori server is unreachable: it may be down, still starting or there is no network connectivity: {}", e.getMessage());
             }
 
-            LOG.warn("Waiting " + SECONDS_WAIT_FOR_SERVER + " seconds before retrying again...");
-            pause(SECONDS_WAIT_FOR_SERVER);
+            LOG.warn("Waiting " + connectionWaitSeconds + " seconds before retrying again...");
+            pause(connectionWaitSeconds);
 
-            if (i >= MAX_RETRIES_WAIT_FOR_SERVER) {
+            if (i >= connectionMaxRetries) {
                 String errorMessage = "Timeout waiting for Zahori server: it seems to be down or there is no network connectivity";
                 LOG.error(errorMessage);
                 throw new RuntimeException(errorMessage);
